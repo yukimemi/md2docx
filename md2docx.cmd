@@ -13,7 +13,7 @@ exit /b %ERRORLEVEL%
 param($mdFile = $(Read-Host "Enter markdown file path"))
 
 $ErrorActionPreference = "stop"
-$DebugPreference = "Continue" # Continue SilentlyContinue Stop Inquire
+$DebugPreference = "SilentlyContinue" # Continue SilentlyContinue Stop Inquire
 # for break point use $host.EnterNestedPrompt()
 
 $commandPath = Split-Path -parent $myInvocation.MyCommand.path
@@ -28,17 +28,49 @@ $mdFile = Join-Path $commandPath "test.md"
 
 # Const variable
 $CONST = @{
-  wdOutlineNumberGallery = 3
-  wdListApplyToWholeList = 0
+  msoConnectorCurve = 3
+  msoConnectorElbow = 2
+  msoConnectorStraight = 1
+  msoConnectorTypeMixed = -2
   msoFalse = 0
   msoTrue = -1
+  wdAlignParagraphCenter = 1
+  wdAlignParagraphLeft = 0
   wdAlignParagraphRight = 2
-  wdSeekMainDocument = 0
-  wdSeekCurrentPageHeader = 9
-  wdSeekCurrentPageFooter = 10
   wdFieldEmpty = -1
   wdFieldPage = 33
+  wdHeaderFooterEvenPages = 3
+  wdHeaderFooterFirstPage = 2
+  wdHeaderFooterPrimary = 1
+  wdListApplyToWholeList = 0
+  wdOutlineNumberGallery = 3
+  wdSeekCurrentPageFooter = 10
+  wdSeekCurrentPageHeader = 9
+  wdSeekMainDocument = 0
+  wdThemeColorAccent1 = 4
+  wdThemeColorAccent2 = 5
+  wdThemeColorAccent3 = 6
+  wdThemeColorAccent4 = 7
+  wdThemeColorAccent5 = 8
+  wdThemeColorAccent6 = 9
+  msoLineSingle = 1
+  msoLineStyleMixed = -2
+  msoLineThickBetweenThin = 5
+  msoLineThickThin = 4
+  msoLineThinThick = 3
+  msoLineThinThin = 2
 }
+
+function rgb($r, $g, $b) {#{{{
+  return ($b + ($g * 256) + ($r * 65536))
+}#}}}
+
+function randomColor() {#{{{
+  $r = $(1..255 | Get-Random)
+  $g = $(1..255 | Get-Random)
+  $b = $(1..255 | Get-Random)
+  return rgb $r $g $b
+}#}}}
 
 function checkFilePath($path) {#{{{
 
