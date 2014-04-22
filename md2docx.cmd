@@ -60,6 +60,8 @@ $CONST = @{#{{{
   wdLineBreakClearLeft = 9
   wdLineBreakClearRight = 10
   wdListApplyToWholeList = 0
+  wdBulletGallery = 1
+  wdNumberGallery = 2
   wdOutlineNumberGallery = 3
   wdPageBreak = 7
   wdPromptToSaveChanges = -2
@@ -156,7 +158,7 @@ function checkFilePath($path) {#{{{
 
 }#}}}
 
-function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableMap, [ref]$listFlg) {#{{{
+function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableMap, [ref]$listMap) {#{{{
 
   trap { Write-Host "[typeText]: Error $($_)"; throw $_ }
 
@@ -197,81 +199,94 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
   }
 
   # list
-  if ($listFlg.Value) {
+  if ($listMap.Value.flg) {
     # Check list end
     if ($line -notmatch "^\s*\* " -and
         $line -notmatch "^\s*[0-9]+\. ") {
       # Reset style
       $selection.Style = $doc.Styles.Item("標準")
-      $listFlg.Value = $false
+      $listMap.Value.flg = $false
     }
+  }
+
+  # command
+  if ($line -match "<!--!(?<command>.*)-->") {
+    $inlineCommand = $matches.command
+    $line = $line -replace "<!--!.*-->", ""
+  } else {
+    $inlineCommand = ""
   }
 
   switch -regex ($line) {
     # title
-    "^#<!--!title--> " {
-            $line = $line -replace "^#<!--!title--> ", ""
+    "^#<!--%title--> " {
+            $line = $line -replace "^#<!--%title--> ", ""
             $selection.TypeText($line)
             $selection.Style = $doc.Styles.Item("表題")
-            #$selection.TypeParagraph()
+            break
           }
     # subtitle
-    "^#<!--!subtitle--> " {
-            $line = $line -replace "^#<!--!subtitle--> ", ""
+    "^#<!--%subtitle--> " {
+            $line = $line -replace "^#<!--%subtitle--> ", ""
             $selection.TypeText($line)
             $selection.Style = $doc.Styles.Item("副題")
-            #$selection.TypeParagraph()
+            break
           }
     # head 1
     "^# " {
             $line = $line -replace "^# ", ""
             $selection.TypeText($line)
             $selection.Style = $doc.Styles.Item("見出し 1")
-            #$selection.TypeParagraph()
           }
     # head 2
     "^## " {
             $line = $line -replace "^## ", ""
             $selection.TypeText($line)
             $selection.Style = $doc.Styles.Item("見出し 2")
-            #$selection.TypeParagraph()
           }
     # head 3
     "^### " {
             $line = $line -replace "^### ", ""
             $selection.TypeText($line)
             $selection.Style = $doc.Styles.Item("見出し 3")
-            #$selection.TypeParagraph()
           }
     # head 4
     "^#### " {
             $line = $line -replace "^#### ", ""
             $selection.TypeText($line)
             $selection.Style = $doc.Styles.Item("見出し 4")
-            #$selection.TypeParagraph()
           }
     # bullet list
     "^\s*\* " {
             $line = $line -replace "^\s*\* ", ""
-            if (! $listFlg.Value) {
+            if (! $listMap.Value.flg) {
               $selection.Range.ListFormat.ApplyBulletDefault()
-              $listFlg.Value = $true
+              $listMap.Value.flg = $true
             }
             $selection.TypeText($line)
-            #$selection.TypeParagraph()
-            #$selection.Style = $doc.Styles.Item("標準")
           }
     # number list
     "^\s*[0-9]+\. " {
             $line = $line -replace "^\s*[0-9]+\. ", ""
-            if (! $listFlg.Value) {
+            if (! $listmap.Value.flg) {
               $selection.Range.ListFormat.ApplyNumberDefault()
-              $listFlg.Value = $true
+              $listMap.Value.flg = $true
             }
+
+            if ($listMap.Value.continuous) {
+              $selection.Range.ListFormat.ApplyListTemplate($word.ListGalleries.Item($CONST.wdNumberGallery).ListTemplates.Item(1), $true)
+            } else {
+              $selection.Range.ListFormat.ApplyListTemplate($word.ListGalleries.Item($CONST.wdNumberGallery).ListTemplates.Item(1), $false)
+              $listMap.Value.continuous = $true
+            }
+
             $selection.TypeText($line)
-            #$selection.TypeParagraph()
-            #$selection.Style = $doc.Styles.Item("標準")
           }
+    # list continuous
+    "<!--% end of list -->$" {
+            $listMap.Value.continuous = $false
+            return
+    }
     # image
     "!\[(?<imgName>.*)\]\((?<imgUrl>.*)\)(<!--!(?<width>[0-9]*)x(?<height>[0-9]*)-->|.*)" {
             $imgPath = $(Join-Path (Split-Path -parent $mdFile) $matches.imgUrl)
@@ -288,22 +303,22 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
             } else {
               Write-Error "$($imgPath) is not found !"
             }
-            #$selection.TypeParagraph()
           }
     # page break
-    "^<!--!(\[改ページ\]|\[PageBreak\])-->" {
+    "^<!--%(\[改ページ\]|\[PageBreak\])-->" {
             $selection.InsertBreak()
-            break
+            return
           }
     # section break
-    "^<!--!(\[改セクション\]|\[SectionBreak\])-->" {
+    "^<!--%(\[改セクション\]|\[SectionBreak\])-->" {
             $selection.InsertBreak($CONST.wdSectionBreakNextPage)
-            break
+            return
           }
     # comment command start
     "^<!--!$" {
             #Write-Debug "---------- command start ----------"
             $commandFlg.Value = $true
+            return
           }
     # table
     "^\|.*\|$" {
@@ -317,7 +332,6 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
             }
 
             $selection.TypeText($line.SubString(1, $line.Length -2))
-            #$selection.TypeParagraph()
             $tableMap.Value.rangeEnd = $selection.End
             $tableMap.Value.flg = $true
           }
@@ -330,15 +344,13 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
     default {
             $selection.Style = $doc.Styles.Item("標準")
             # comment command
-            if ($line -match "<!--!(?<command>.*)-->") {
-              $selection.TypeText($($line -replace "<!--!.*-->", ""))
-              Write-Debug $matches.command
-              Invoke-Expression $matches.command
-            } else {
-              $selection.TypeText($line)
-            }
-            #$selection.TypeParagraph()
+            $selection.TypeText($line)
           }
+  }
+
+  # Do inline command
+  if ($inlineCommand -ne "") {
+    Invoke-Expression $inlineCommand
   }
 
   $selection.TypeParagraph()
@@ -351,13 +363,16 @@ function main() {#{{{
 
   $commandList = New-Object System.Collections.Generic.List[string]
   $commandFlg = $false
-  $listFlg = $false
   $tableMap = @{
     flg = $false
     row = 0
     col = 0
     rangeStart = 0
     rangeEnd = 0
+  }
+  $listMap = @{
+    flg = $false
+    continuous = $true
   }
 
   # check file
@@ -380,7 +395,7 @@ function main() {#{{{
 
     gc -Encoding UTF8 $mdFile | % {
       #Write-Debug $_
-      typeText $_ $word $doc $selection ([ref]$commandFlg) ([ref]$tableMap) ([ref]$listFlg)
+      typeText $_ $word $doc $selection ([ref]$commandFlg) ([ref]$tableMap) ([ref]$listMap)
     }
 
     $mdFileInfo = gci $mdFile
