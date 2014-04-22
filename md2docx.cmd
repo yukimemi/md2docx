@@ -156,7 +156,7 @@ function checkFilePath($path) {#{{{
 
 }#}}}
 
-function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableMap) {#{{{
+function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableMap, [ref]$listFlg) {#{{{
 
   trap { Write-Host "[typeText]: Error $($_)"; throw $_ }
 
@@ -196,64 +196,81 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
     }
   }
 
+  # list
+  if ($listFlg.Value) {
+    # Check list end
+    if ($line -notmatch "^\s*\* " -and
+        $line -notmatch "^\s*[0-9]+\. ") {
+      # Reset style
+      $selection.Style = $doc.Styles.Item("標準")
+      $listFlg.Value = $false
+    }
+  }
+
   switch -regex ($line) {
     # title
     "^#<!--!title--> " {
             $line = $line -replace "^#<!--!title--> ", ""
             $selection.TypeText($line)
             $selection.Style = $doc.Styles.Item("表題")
-            $selection.TypeParagraph()
+            #$selection.TypeParagraph()
           }
     # subtitle
     "^#<!--!subtitle--> " {
             $line = $line -replace "^#<!--!subtitle--> ", ""
             $selection.TypeText($line)
             $selection.Style = $doc.Styles.Item("副題")
-            $selection.TypeParagraph()
+            #$selection.TypeParagraph()
           }
     # head 1
     "^# " {
             $line = $line -replace "^# ", ""
             $selection.TypeText($line)
             $selection.Style = $doc.Styles.Item("見出し 1")
-            $selection.TypeParagraph()
+            #$selection.TypeParagraph()
           }
     # head 2
     "^## " {
             $line = $line -replace "^## ", ""
             $selection.TypeText($line)
             $selection.Style = $doc.Styles.Item("見出し 2")
-            $selection.TypeParagraph()
+            #$selection.TypeParagraph()
           }
     # head 3
     "^### " {
             $line = $line -replace "^### ", ""
             $selection.TypeText($line)
             $selection.Style = $doc.Styles.Item("見出し 3")
-            $selection.TypeParagraph()
+            #$selection.TypeParagraph()
           }
     # head 4
     "^#### " {
             $line = $line -replace "^#### ", ""
             $selection.TypeText($line)
             $selection.Style = $doc.Styles.Item("見出し 4")
-            $selection.TypeParagraph()
+            #$selection.TypeParagraph()
           }
     # bullet list
-    "^\* " {
-            $line = $line -replace "^\* ", ""
-            $selection.Range.ListFormat.ApplyBulletDefault()
+    "^\s*\* " {
+            $line = $line -replace "^\s*\* ", ""
+            if (! $listFlg.Value) {
+              $selection.Range.ListFormat.ApplyBulletDefault()
+              $listFlg.Value = $true
+            }
             $selection.TypeText($line)
-            $selection.TypeParagraph()
-            $selection.Style = $doc.Styles.Item("標準")
+            #$selection.TypeParagraph()
+            #$selection.Style = $doc.Styles.Item("標準")
           }
     # number list
-    "^[0-9]+\. " {
-            $line = $line -replace "^[0-9]+\. ", ""
-            $selection.Range.ListFormat.ApplyNumberDefault()
+    "^\s*[0-9]+\. " {
+            $line = $line -replace "^\s*[0-9]+\. ", ""
+            if (! $listFlg.Value) {
+              $selection.Range.ListFormat.ApplyNumberDefault()
+              $listFlg.Value = $true
+            }
             $selection.TypeText($line)
-            $selection.TypeParagraph()
-            $selection.Style = $doc.Styles.Item("標準")
+            #$selection.TypeParagraph()
+            #$selection.Style = $doc.Styles.Item("標準")
           }
     # image
     "!\[(?<imgName>.*)\]\((?<imgUrl>.*)\)(<!--!(?<width>[0-9]*)x(?<height>[0-9]*)-->|.*)" {
@@ -271,7 +288,7 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
             } else {
               Write-Error "$($imgPath) is not found !"
             }
-            $selection.TypeParagraph()
+            #$selection.TypeParagraph()
           }
     # page break
     "^<!--!(\[改ページ\]|\[PageBreak\])-->" {
@@ -300,7 +317,7 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
             }
 
             $selection.TypeText($line.SubString(1, $line.Length -2))
-            $selection.TypeParagraph()
+            #$selection.TypeParagraph()
             $tableMap.Value.rangeEnd = $selection.End
             $tableMap.Value.flg = $true
           }
@@ -320,9 +337,11 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
             } else {
               $selection.TypeText($line)
             }
-            $selection.TypeParagraph()
+            #$selection.TypeParagraph()
           }
   }
+
+  $selection.TypeParagraph()
 
 }#}}}
 
@@ -332,6 +351,7 @@ function main() {#{{{
 
   $commandList = New-Object System.Collections.Generic.List[string]
   $commandFlg = $false
+  $listFlg = $false
   $tableMap = @{
     flg = $false
     row = 0
@@ -353,14 +373,14 @@ function main() {#{{{
 
     $word = New-Object -ComObject Word.Application
     $word.Application.DisplayAlerts = $CONST.wdAlertsNone
-    $word.Visible = $true
+    $word.Visible = $false
 
     $doc = $word.Documents.Add()
     $selection = $word.Selection
 
     gc -Encoding UTF8 $mdFile | % {
       #Write-Debug $_
-      typeText $_ $word $doc $selection ([ref]$commandFlg) ([ref]$tableMap)
+      typeText $_ $word $doc $selection ([ref]$commandFlg) ([ref]$tableMap) ([ref]$listFlg)
     }
 
     $mdFileInfo = gci $mdFile
