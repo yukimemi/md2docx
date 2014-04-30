@@ -179,6 +179,32 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
       $table = $doc.Range([ref]$tableMap.Value.rangeStart, [ref]$tableMap.Value.rangeEnd).ConvertToTable("|", $tableMap.Value.row, $tableMap.Value.col)
       $table.AutoFormat($CONST.wdTableFormatElegant)
 
+      # Cell Alignment
+      $tableDelRow = 0
+      $table.Rows | % {
+        $rowNum = $_.Index
+        $_ | % {
+          $val = $_.Range.Text
+          Write-Debug $val
+          if ($val -match "^:-*$") {
+            $tableDelRow = $rowNum
+            $table.Columns.Item($_.Index).Select()
+            $selection.ParagraphFormat.Alignment = $CONST.wdAlignParagraphLeft
+          } elseif ($val -match "^-*:$") {
+            $tableDelRow = $rowNum
+            $table.Columns.Item($_.Index).Select()
+            $selection.ParagraphFormat.Alignment = $CONST.wdAlignParagraphRight
+          } elseif ($val -match "^:-*:$") {
+            $tableDelRow = $rowNum
+            $table.Columns.Item($_.Index).Select()
+            $selection.ParagraphFormat.Alignment = $CONST.wdAlignParagraphCenter
+          }
+        }
+      }
+      if ($tableDelRow -ne 0) {
+        Write-Debug "Delete $($tableDelRow) row"
+      }
+
       $tableMap.Value.row = 0
       $tableMap.Value.col = 0
       $tableMap.Value.rangeStart = 0
@@ -330,7 +356,8 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
               $tableMap.Value.rangeStart = $selection.Start
             }
 
-            $selection.TypeText($line.SubString(1, $line.Length -2))
+            $lineArray = $lineArray | % { $_.Trim() }
+            $selection.TypeText($lineArray -join "|")
             $tableMap.Value.rangeEnd = $selection.End
             $tableMap.Value.flg = $true
           }
