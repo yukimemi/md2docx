@@ -198,14 +198,24 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
     }
   }
 
-  # list
-  if ($listMap.Value.flg) {
+  # Bullet list
+  if ($listMap.Value.bflg) {
     # Check list end
-    if ($line -notmatch "^\s*\* " -and
-        $line -notmatch "^\s*[0-9]+\. ") {
+    if ($line -notmatch "^\s*\* ") {
       # Reset style
       $selection.Style = $doc.Styles.Item("標準")
-      $listMap.Value.flg = $false
+      $listMap.Value.bflg = $false
+      $listmap.Value.bIndent = 0
+    }
+  }
+  # Number list
+  if ($listMap.Value.nflg) {
+    # Check list end
+    if ($line -notmatch "^\s*[0-9]+\. ") {
+      # Reset style
+      $selection.Style = $doc.Styles.Item("標準")
+      $listMap.Value.nflg = $false
+      $listmap.Value.nIndent = 0
     }
   }
 
@@ -257,20 +267,44 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
             $selection.Style = $doc.Styles.Item("見出し 4")
           }
     # bullet list
-    "^\s*\* " {
+    "^(?<bIndent>\s*)\* " {
+            Write-Debug "Bullet indent: $($listmap.Value.bIndent)"
             $line = $line -replace "^\s*\* ", ""
-            if (! $listMap.Value.flg) {
+            if (! $listMap.Value.bFlg) {
               $selection.Range.ListFormat.ApplyBulletDefault()
-              $listMap.Value.flg = $true
+              $listMap.Value.bFlg = $true
             }
+
+            # indent
+            $indentCnt = ($matches.bIndent).Length
+            if ($indentCnt -ne 0) {
+              if ($listMap.Value.indentCnt -eq 0) {
+                $listMap.Value.indentCnt = $indentCnt
+              }
+
+              $indent = $indentCnt / $listMap.Value.indentCnt
+              $selection.ParagraphFormat.LeftIndent = $word.MillimetersToPoints(7.4)
+              for ($i = 0; $i -lt $indent; $i++) {
+                $selection.Range.ListFormat.ListIndent()
+              }
+            }
+
+            #if ($indentCnt -gt $listmap.Value.bIndent) {
+              #$selection.Range.ListFormat.ListIndent()
+            #} elseif ($indentCnt -lt $listmap.Value.bIndent) {
+              #$selection.Range.ListFormat.ListOutdent()
+            #}
+            #$listmap.Value.bIndent = $indentCnt
+
             $selection.TypeText($line)
           }
     # number list
-    "^\s*[0-9]+\. " {
+    "^(?<nIndent>\s*)[0-9]+\. " {
+            Write-Debug "Number indent: $($listmap.Value.nIndent)"
             $line = $line -replace "^\s*[0-9]+\. ", ""
-            if (! $listmap.Value.flg) {
+            if (! $listmap.Value.nFlg) {
               $selection.Range.ListFormat.ApplyNumberDefault()
-              $listMap.Value.flg = $true
+              $listMap.Value.nFlg = $true
             }
 
             if ($listMap.Value.continuous) {
@@ -280,15 +314,25 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
               $listMap.Value.continuous = $true
             }
 
+            # indent
+            $indentCnt = ($matches.nIndent).Length
+            if ($indentCnt -gt $listmap.Value.nIndent) {
+              $selection.Range.ListFormat.ListIndent()
+            } elseif ($indentCnt -lt $listmap.Value.nIndent) {
+              $selection.Range.ListFormat.ListOutdent()
+            }
+            $listmap.Value.nIndent = $indentCnt
+
             $selection.TypeText($line)
           }
     # list continuous
     "<!--% end of list -->$" {
             $listMap.Value.continuous = $false
+            $listmap.Value.nIndent = 0
             return
     }
     # image
-    "!\[(?<imgName>.*)\]\((?<imgUrl>.*)\)(<!--!(?<width>[0-9]*)x(?<height>[0-9]*)-->|.*)" {
+    "!\[(?<imgName>.*)\]\((?<imgUrl>.*)\)(<!--%(?<width>[0-9]*)x(?<height>[0-9]*)-->|.*)" {
             $imgPath = $(Join-Path (Split-Path -parent $mdFile) $matches.imgUrl)
             if (Test-Path $imgPath) {
               $img = $selection.InlineShapes.AddPicture($imgPath)
@@ -343,7 +387,6 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
     # other
     default {
             $selection.Style = $doc.Styles.Item("標準")
-            # comment command
             $selection.TypeText($line)
           }
   }
@@ -371,8 +414,12 @@ function main() {#{{{
     rangeEnd = 0
   }
   $listMap = @{
-    flg = $false
+    bflg = $false
+    nflg = $false
     continuous = $true
+    indentCnt = 0
+    bIndent = 0
+    nIndent = 0
   }
 
   # check file
@@ -388,7 +435,7 @@ function main() {#{{{
 
     $word = New-Object -ComObject Word.Application
     $word.Application.DisplayAlerts = $CONST.wdAlertsNone
-    $word.Visible = $false
+    $word.Visible = $true
 
     $doc = $word.Documents.Add()
     $selection = $word.Selection
@@ -397,6 +444,9 @@ function main() {#{{{
       #Write-Debug $_
       typeText $_ $word $doc $selection ([ref]$commandFlg) ([ref]$tableMap) ([ref]$listMap)
     }
+
+    # reset style
+    $selection.Style = $doc.Styles.Item("標準")
 
     $mdFileInfo = gci $mdFile
     $doc.SaveAs([ref]$(Join-Path $mdFileInfo.DirectoryName ($mdFileInfo.BaseName + ".docx")))
