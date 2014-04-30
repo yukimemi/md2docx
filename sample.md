@@ -1,5 +1,5 @@
-#<!--!title--> md2docx サンプル
-#<!--!subtitle--> 〜MarkdownでWordを書こう〜
+#<!--%title--> md2docx サンプル
+#<!--%subtitle--> 〜MarkdownでWordを書こう〜
 Author: yukimemi<!--!$selection.ParagraphFormat.Alignment = $CONST.wdAlignParagraphRight-->
 
 # Markdownは素晴らしい！
@@ -20,7 +20,7 @@ Wordは素晴らしい機能を持っていますが、なんかいろいろ難�
 * wordマクロがPowerShell記述で使える。
 * PowerShellなので、Windowsユーザーならデフォルトで使用出来る。
 
-## TODO
+# TODO
 
 * 処理速度向上
 * Wordテンプレートの使用
@@ -71,25 +71,37 @@ Wordは素晴らしい機能を持っていますが、なんかいろいろ難�
   }
 
   # page setup
-  $doc.PageSetup.TopMargin = $word.MillimetersToPoints(25)
-  $doc.PageSetup.BottomMargin = $word.MillimetersToPoints(20)
+  $doc.PageSetup.TopMargin = $word.MillimetersToPoints(10)
+  $doc.PageSetup.BottomMargin = $word.MillimetersToPoints(10)
   $doc.PageSetup.LeftMargin = $word.MillimetersToPoints(20)
   $doc.PageSetup.RightMargin = $word.MillimetersToPoints(15)
   $doc.PageSetup.Gutter = $word.MillimetersToPoints(0)
 
-  $doc.PageSetup.HeaderDistance = $word.MillimetersToPoints(15)
-  $doc.PageSetup.FooterDistance = $word.MillimetersToPoints(15)
+  $doc.PageSetup.HeaderDistance = $word.MillimetersToPoints(10)
+  $doc.PageSetup.FooterDistance = $word.MillimetersToPoints(10)
 
-  # header
-  $word.ActiveWindow.ActivePane.View.SeekView = $CONST.wdSeekCurrentPageHeader
-  $selection.TypeText("MarkdownでWordを書こう")
-  $selection.ParagraphFormat.Alignment = $CONST.wdAlignParagraphRight
-  $word.ActiveWindow.ActivePane.View.SeekView = $CONST.wdSeekMainDocument
+  $doc.Sections | % {
+    # header
+    $header = $_.Headers.Item($CONST.wdHeaderFooterPrimary)
+    $header.Range.Text = "MarkdownでWordを書こう"
+    $header.Range.ParagraphFormat.Alignment = $CONST.wdAlignParagraphRight
+    # header line
+    $shape = $header.Shapes.AddConnector($CONST.msoConnectorStraight, $word.MillimetersToPoints(20), $word.MillimetersToPoints(16), $word.MillimetersToPoints(195), $word.MillimetersToPoints(16))
+    $shape.Line.Visible = $CONST.msoTrue
+    $shape.Line.Style = $CONST.msoLineThinThin
+    $shape.Line.ForeColor.RGB = randomColor
+    $shape.Line.Weight = 4.00
 
-  # footer
-  $word.ActiveWindow.ActivePane.View.SeekView = $CONST.wdSeekCurrentPageFooter
-  $selection.Fields.Add($selection.Range, $CONST.wdFieldPage, "#PAGE")
-  $selection.ParagraphFormat.Alignment = $CONST.wdAlignParagraphRight
-  $word.ActiveWindow.ActivePane.View.SeekView = $CONST.wdSeekMainDocument
+    # footer
+    $footer = $_.Footers.Item($CONST.wdHeaderFooterPrimary)
+    $footer.Range.Fields.Add($footer.Range, $CONST.wdFieldPage)
+    $footer.Range.ParagraphFormat.Alignment = $CONST.wdAlignParagraphCenter
+    # footer line
+    $shape = $footer.Shapes.AddConnector($CONST.msoConnectorStraight, $word.MillimetersToPoints(20), $word.MillimetersToPoints(282), $word.MillimetersToPoints(195), $word.MillimetersToPoints(282))
+    $shape.Line.Visible = $CONST.msoTrue
+    $shape.Line.Style = $CONST.msoLineThinThin
+    $shape.Line.ForeColor.RGB = randomColor
+    $shape.Line.Weight = 4.00
+  }
 
 -->
