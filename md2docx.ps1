@@ -131,12 +131,12 @@ function checkFilePath($path) {#{{{
 
   trap { Write-Host "[checkFilePath]: Error $($_)"; throw $_ }
 
+  $path = $path -replace """", ""
+
   if (! (Test-Path $path)) {
     Write-Host "$($path) is not found !"
     return $false
   }
-
-  $path = $path -replace """", ""
 
   # to abs path
   $path = Convert-Path $path
@@ -382,6 +382,22 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
 
 }#}}}
 
+function readps1() {#{{{
+
+  trap { Write-Host "[readps1]: Error $($_)"; throw $_ }
+
+  $mdFileInfo = gci $mdFile
+  $ps1File = Join-Path $mdFileInfo.DirectoryName ($mdFileInfo.BaseName + ".ps1")
+
+  if (Test-Path $ps1File) {
+    Write-Debug "$($ps1File) is exists !"
+    Write-Host "Excute $($ps1File)..."
+
+    Invoke-Expression $ps1File
+  }
+
+}#}}}
+
 function main() {#{{{
 
   trap { Write-Host "[main]: Error $($_)"; throw $_ }
@@ -413,7 +429,7 @@ function main() {#{{{
 
     $word = New-Object -ComObject Word.Application
     $word.Application.DisplayAlerts = $CONST.wdAlertsNone
-    $word.Visible = $true
+    # $word.Visible = $true
 
     $doc = $word.Documents.Add()
     $selection = $word.Selection
@@ -422,6 +438,9 @@ function main() {#{{{
       #Write-Debug $_
       typeText $_ $word $doc $selection ([ref]$commandFlg) ([ref]$tableMap) ([ref]$listMap)
     }
+
+    # Read and excute out script
+    readps1
 
     # reset style
     $selection.Style = $doc.Styles.Item("ïWèÄ")

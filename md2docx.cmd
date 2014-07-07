@@ -142,12 +142,12 @@ function checkFilePath($path) {#{{{
 
   trap { Write-Host "[checkFilePath]: Error $($_)"; throw $_ }
 
+  $path = $path -replace """", ""
+
   if (! (Test-Path $path)) {
     Write-Host "$($path) is not found !"
     return $false
   }
-
-  $path = $path -replace """", ""
 
   # to abs path
   $path = Convert-Path $path
@@ -237,39 +237,39 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
     "^#<!--%title--> " {
             $line = $line -replace "^#<!--%title--> ", ""
             $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("ï\ëË")
+            $selection.Style = $doc.Styles.Item("Ë°®È°å")
             break
           }
     # subtitle
     "^#<!--%subtitle--> " {
             $line = $line -replace "^#<!--%subtitle--> ", ""
             $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("ïõëË")
+            $selection.Style = $doc.Styles.Item("ÂâØÈ°å")
             break
           }
     # head 1
     "^# " {
             $line = $line -replace "^# ", ""
             $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("å©èoÇµ 1")
+            $selection.Style = $doc.Styles.Item("Ë¶ãÂá∫„Åó 1")
           }
     # head 2
     "^## " {
             $line = $line -replace "^## ", ""
             $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("å©èoÇµ 2")
+            $selection.Style = $doc.Styles.Item("Ë¶ãÂá∫„Åó 2")
           }
     # head 3
     "^### " {
             $line = $line -replace "^### ", ""
             $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("å©èoÇµ 3")
+            $selection.Style = $doc.Styles.Item("Ë¶ãÂá∫„Åó 3")
           }
     # head 4
     "^#### " {
             $line = $line -replace "^#### ", ""
             $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("å©èoÇµ 4")
+            $selection.Style = $doc.Styles.Item("Ë¶ãÂá∫„Åó 4")
           }
     # bullet list
     "^(?<bIndent>\s*)\* " {
@@ -341,12 +341,12 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
             }
           }
     # page break
-    "^<!--%(\[â¸ÉyÅ[ÉW\]|\[PageBreak\])-->" {
+    "^<!--%(\[Êîπ„Éö„Éº„Ç∏\]|\[PageBreak\])-->" {
             $selection.InsertBreak()
             return
           }
     # section break
-    "^<!--%(\[â¸ÉZÉNÉVÉáÉì\]|\[SectionBreak\])-->" {
+    "^<!--%(\[Êîπ„Çª„ÇØ„Ç∑„Éß„É≥\]|\[SectionBreak\])-->" {
             $selection.InsertBreak($CONST.wdSectionBreakNextPage)
             return
           }
@@ -389,7 +389,23 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
   }
 
   $selection.TypeParagraph()
-  $selection.Style = $doc.Styles.Item("ïWèÄ")
+  $selection.Style = $doc.Styles.Item("Ê®ôÊ∫ñ")
+
+}#}}}
+
+function readps1() {#{{{
+
+  trap { Write-Host "[readps1]: Error $($_)"; throw $_ }
+
+  $mdFileInfo = gci $mdFile
+  $ps1File = Join-Path $mdFileInfo.DirectoryName ($mdFileInfo.BaseName + ".ps1")
+
+  if (Test-Path $ps1File) {
+    Write-Debug "$($ps1File) is exists !"
+    Write-Host "Excute $($ps1File)..."
+
+    Invoke-Expression $ps1File
+  }
 
 }#}}}
 
@@ -424,7 +440,7 @@ function main() {#{{{
 
     $word = New-Object -ComObject Word.Application
     $word.Application.DisplayAlerts = $CONST.wdAlertsNone
-    $word.Visible = $true
+    # $word.Visible = $true
 
     $doc = $word.Documents.Add()
     $selection = $word.Selection
@@ -434,8 +450,11 @@ function main() {#{{{
       typeText $_ $word $doc $selection ([ref]$commandFlg) ([ref]$tableMap) ([ref]$listMap)
     }
 
+    # Read and excute out script
+    readps1
+
     # reset style
-    $selection.Style = $doc.Styles.Item("ïWèÄ")
+    $selection.Style = $doc.Styles.Item("Ê®ôÊ∫ñ")
 
     $mdFileInfo = gci $mdFile
     $doc.SaveAs([ref]$(Join-Path $mdFileInfo.DirectoryName ($mdFileInfo.BaseName + ".docx")))
@@ -452,4 +471,4 @@ function main() {#{{{
 
 # call main
 Measure-Command { main }
-
+
