@@ -2,7 +2,7 @@
 pushd "%~dp0" > nul
 set tm=%time: =0%
 set ps1file=%~n0___%date:~-10,4%%date:~-5,2%%date:~-2,2%_%tm:~0,2%%tm:~3,2%%tm:~6,2%%tm:~9,2%.ps1
-for /f "usebackq skip=10 delims=" %%i in ("%~f0") do @echo %%i >> "%ps1file%"
+more +10 "%~f0" >> "%ps1file%"
 powershell -NoProfile -ExecutionPolicy unrestricted -File "%ps1file%" %*
 del "%ps1file%"
 popd > nul
@@ -13,7 +13,7 @@ exit %ERRORLEVEL%
 param($mdFile = $(Read-Host "Enter markdown file path"))
 
 $ErrorActionPreference = "stop"
-$DebugPreference = "Continue" # Continue SilentlyContinue Stop Inquire
+$DebugPreference = "SilentlyContinue" # Continue SilentlyContinue Stop Inquire
 # for break point use $host.EnterNestedPrompt()
 
 $commandPath = Split-Path -parent $myInvocation.MyCommand.path
@@ -61,6 +61,50 @@ $CONST = @{#{{{
   wdLineBreakClearRight = 10
   wdListApplyToWholeList = 0
   wdBulletGallery = 1
+  wdBorderLeft = -2
+  wdBorderRight = -4
+  wdBorderTop = -1
+  wdBorderBottom = -3
+  wdBorderDiagonalDown = -7
+  wdBorderDiagonalUp = -8
+  wdBorderHorizontal = -5
+  wdBorderVertical = -6
+  wdLineStyleDashDot = 5
+  wdLineStyleDashDotDot = 6
+  wdLineStyleDashDotStroked = 20
+  wdLineStyleDashLargeGap = 4
+  wdLineStyleDashSmallGap = 3
+  wdLineStyleDot = 2
+  wdLineStyleDouble = 7
+  wdLineStyleDoubleWavy = 19
+  wdLineStyleEmboss3D = 21
+  wdLineStyleEngrave3D = 22
+  wdLineStyleInset = 24
+  wdLineStyleNone = 0
+  wdLineStyleOutset = 23
+  wdLineStyleSingle = 1
+  wdLineStyleSingleWavy = 18
+  wdLineStyleThickThinLargeGap = 16
+  wdLineStyleThickThinMedGap = 13
+  wdLineStyleThickThinSmallGap = 10
+  wdLineStyleThinThickLargeGap = 15
+  wdLineStyleThinThickMedGap = 12
+  wdLineStyleThinThickSmallGap = 9
+  wdLineStyleThinThickThinLargeGap = 17
+  wdLineStyleThinThickThinMedGap = 14
+  wdLineStyleThinThickThinSmallGap = 11
+  wdLineStyleTriple = 8
+  wdLineWidth025pt = 2
+  wdLineWidth050pt = 4
+  wdLineWidth075pt = 6
+  wdLineWidth100pt = 8
+  wdLineWidth150pt = 12
+  wdLineWidth225pt = 18
+  wdLineWidth300pt = 24
+  wdLineWidth450pt = 36
+  wdLineWidth600pt = 48
+  wdOrientLandscape = 1
+  wdOrientPortrait = 0
   wdNumberGallery = 2
   wdOutlineNumberGallery = 3
   wdPageBreak = 7
@@ -181,7 +225,7 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
 
   # table
   if ($tableMap.Value.flg) {
-    # Check tale end
+    # Check table end
     if ($line -notmatch "^\|.*\|$") {
       Write-Debug "---------- table end ----------"
       Write-Debug "table row = $($tableMap.Value.row)"
@@ -237,39 +281,39 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
     "^#<!--%title--> " {
             $line = $line -replace "^#<!--%title--> ", ""
             $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("Ë°®È°å")
+            $selection.Style = $doc.Styles.Item("ï\ëË")
             break
           }
     # subtitle
     "^#<!--%subtitle--> " {
             $line = $line -replace "^#<!--%subtitle--> ", ""
             $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("ÂâØÈ°å")
+            $selection.Style = $doc.Styles.Item("ïõëË")
             break
           }
     # head 1
     "^# " {
             $line = $line -replace "^# ", ""
             $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("Ë¶ãÂá∫„Åó 1")
+            $selection.Style = $doc.Styles.Item("å©èoÇµ 1")
           }
     # head 2
     "^## " {
             $line = $line -replace "^## ", ""
             $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("Ë¶ãÂá∫„Åó 2")
+            $selection.Style = $doc.Styles.Item("å©èoÇµ 2")
           }
     # head 3
     "^### " {
             $line = $line -replace "^### ", ""
             $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("Ë¶ãÂá∫„Åó 3")
+            $selection.Style = $doc.Styles.Item("å©èoÇµ 3")
           }
     # head 4
     "^#### " {
             $line = $line -replace "^#### ", ""
             $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("Ë¶ãÂá∫„Åó 4")
+            $selection.Style = $doc.Styles.Item("å©èoÇµ 4")
           }
     # bullet list
     "^(?<bIndent>\s*)\* " {
@@ -341,12 +385,12 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
             }
           }
     # page break
-    "^<!--%(\[Êîπ„Éö„Éº„Ç∏\]|\[PageBreak\])-->" {
+    "^<!--%(\[â¸ÉyÅ[ÉW\]|\[PageBreak\])-->" {
             $selection.InsertBreak()
             return
           }
     # section break
-    "^<!--%(\[Êîπ„Çª„ÇØ„Ç∑„Éß„É≥\]|\[SectionBreak\])-->" {
+    "^<!--%(\[â¸ÉZÉNÉVÉáÉì\]|\[SectionBreak\])-->" {
             $selection.InsertBreak($CONST.wdSectionBreakNextPage)
             return
           }
@@ -389,7 +433,7 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
   }
 
   $selection.TypeParagraph()
-  $selection.Style = $doc.Styles.Item("Ê®ôÊ∫ñ")
+  $selection.Style = $doc.Styles.Item("ïWèÄ")
 
 }#}}}
 
@@ -454,7 +498,7 @@ function main() {#{{{
     readps1
 
     # reset style
-    $selection.Style = $doc.Styles.Item("Ê®ôÊ∫ñ")
+    $selection.Style = $doc.Styles.Item("ïWèÄ")
 
     $mdFileInfo = gci $mdFile
     $doc.SaveAs([ref]$(Join-Path $mdFileInfo.DirectoryName ($mdFileInfo.BaseName + ".docx")))
