@@ -1,26 +1,22 @@
-@echo off
-pushd "%~dp0" > nul
-set tm=%time: =0%
-set ps1file=%~n0___%date:~-10,4%%date:~-5,2%%date:~-2,2%_%tm:~0,2%%tm:~3,2%%tm:~6,2%%tm:~9,2%.ps1
-for /f "usebackq skip=10 delims=" %%i in ("%~f0") do @echo %%i >> "%ps1file%"
-powershell -NoProfile -ExecutionPolicy unrestricted -File "%ps1file%" %*
-del "%ps1file%"
-popd > nul
-pause
-exit %ERRORLEVEL%
-# ========== do ps1 file as a dosbatch ==========
+@set scriptPath=%~f0&@powershell -NoProfile -ExecutionPolicy ByPass "$s=[scriptblock]::create((gc \"%~f0\"|?{$_.readcount -gt 2})-join\"`n\");&$s" %*
+@exit /b %errorlevel%
 # markdown -> docx
 param($mdFile = $(Read-Host "Enter markdown file path"))
 
 $ErrorActionPreference = "stop"
-$DebugPreference = "Continue" # Continue SilentlyContinue Stop Inquire
+$DebugPreference = "SilentlyContinue" # Continue SilentlyContinue Stop Inquire
 # for break point use $host.EnterNestedPrompt()
 
-$commandPath = Split-Path -parent $myInvocation.MyCommand.path
-$commandName = Split-Path -leaf $myInvocation.MyCommand.path
-$commandBaseName = ((gci $myInvocation.MyCommand.path).BaseName -split "___")[0]
+$cmdFile = & {
+  if ($env:scriptPath) {
+    return [System.IO.Path]::GetFullPath($env:scriptPath)
+  } else {
+    return [System.IO.Path]::GetFullPath($script:MyInvocation.MyCommand.Path)
+  }
+}
+$cmdDir = Split-Path -parent $cmdFile
 
-Set-Location $commandPath
+Set-Location $cmdDir
 
 <# for test
 $mdFile = Join-Path $commandPath "test.md"
@@ -61,6 +57,48 @@ $CONST = @{#{{{
   wdLineBreakClearRight = 10
   wdListApplyToWholeList = 0
   wdBulletGallery = 1
+  wdBorderLeft = -2
+  wdBorderRight = -4
+  wdBorderTop = -1
+  wdBorderBottom = -3
+  wdBorderDiagonalDown = -7
+  wdBorderDiagonalUp = -8
+  wdBorderHorizontal = -5
+  wdBorderVertical = -6
+  wdLineStyleDashDot = 5
+  wdLineStyleDashDotDot = 6
+  wdLineStyleDashDotStroked = 20
+  wdLineStyleDashLargeGap = 4
+  wdLineStyleDashSmallGap = 3
+  wdLineStyleDot = 2
+  wdLineStyleDouble = 7
+  wdLineStyleDoubleWavy = 19
+  wdLineStyleEmboss3D = 21
+  wdLineStyleEngrave3D = 22
+  wdLineStyleInset = 24
+  wdLineStyleNone = 0
+  wdLineStyleOutset = 23
+  wdLineStyleSingle = 1
+  wdLineStyleSingleWavy = 18
+  wdLineStyleThickThinLargeGap = 16
+  wdLineStyleThickThinMedGap = 13
+  wdLineStyleThickThinSmallGap = 10
+  wdLineStyleThinThickLargeGap = 15
+  wdLineStyleThinThickMedGap = 12
+  wdLineStyleThinThickSmallGap = 9
+  wdLineStyleThinThickThinLargeGap = 17
+  wdLineStyleThinThickThinMedGap = 14
+  wdLineStyleThinThickThinSmallGap = 11
+  wdLineStyleTriple = 8
+  wdLineWidth025pt = 2
+  wdLineWidth050pt = 4
+  wdLineWidth075pt = 6
+  wdLineWidth100pt = 8
+  wdLineWidth150pt = 12
+  wdLineWidth225pt = 18
+  wdLineWidth300pt = 24
+  wdLineWidth450pt = 36
+  wdLineWidth600pt = 48
   wdNumberGallery = 2
   wdOutlineNumberGallery = 3
   wdPageBreak = 7
@@ -142,12 +180,12 @@ function checkFilePath($path) {#{{{
 
   trap { Write-Host "[checkFilePath]: Error $($_)"; throw $_ }
 
+  $path = $path -replace """", ""
+
   if (! (Test-Path $path)) {
     Write-Host "$($path) is not found !"
     return $false
   }
-
-  $path = $path -replace """", ""
 
   # to abs path
   $path = Convert-Path $path
@@ -393,6 +431,22 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
 
 }#}}}
 
+function readps1() {#{{{
+
+  trap { Write-Host "[readps1]: Error $($_)"; throw $_ }
+
+  $mdFileInfo = gci $mdFile
+  $ps1File = Join-Path $mdFileInfo.DirectoryName ($mdFileInfo.BaseName + ".ps1")
+
+  if (Test-Path $ps1File) {
+    Write-Debug "$($ps1File) is exists !"
+    Write-Host "Excute $($ps1File)..."
+
+    Invoke-Expression $ps1File
+  }
+
+}#}}}
+
 function main() {#{{{
 
   trap { Write-Host "[main]: Error $($_)"; throw $_ }
@@ -424,7 +478,7 @@ function main() {#{{{
 
     $word = New-Object -ComObject Word.Application
     $word.Application.DisplayAlerts = $CONST.wdAlertsNone
-    $word.Visible = $true
+    # $word.Visible = $true
 
     $doc = $word.Documents.Add()
     $selection = $word.Selection
@@ -433,6 +487,9 @@ function main() {#{{{
       #Write-Debug $_
       typeText $_ $word $doc $selection ([ref]$commandFlg) ([ref]$tableMap) ([ref]$listMap)
     }
+
+    # Read and excute out script
+    readps1
 
     # reset style
     $selection.Style = $doc.Styles.Item("•W€")
@@ -452,4 +509,3 @@ function main() {#{{{
 
 # call main
 Measure-Command { main }
-
