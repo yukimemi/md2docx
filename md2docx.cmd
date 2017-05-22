@@ -181,6 +181,7 @@ function checkFilePath($path) {#{{{
   trap { Write-Host "[checkFilePath]: Error $($_)"; throw $_ }
 
   $path = $path -replace """", ""
+  $path = $path -replace "'", ""
 
   if (! (Test-Path $path)) {
     Write-Host "$($path) is not found !"
@@ -442,7 +443,7 @@ function readps1() {#{{{
     Write-Debug "$($ps1File) is exists !"
     Write-Host "Excute $($ps1File)..."
 
-    Invoke-Expression $ps1File
+    Invoke-Expression "& '$ps1File'"
   }
 
 }#}}}
