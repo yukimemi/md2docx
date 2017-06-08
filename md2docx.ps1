@@ -21,7 +21,7 @@ $mdFile = Join-Path $commandPath "test.md"
 #>
 
 # Const variable
-$CONST = @{#{{{
+$CONST = @{
   msoConnectorCurve = 3
   msoConnectorElbow = 2
   msoConnectorStraight = 1
@@ -161,20 +161,20 @@ $CONST = @{#{{{
   wdTableFormatWeb1 = 40
   wdTableFormatWeb2 = 41
   wdTableFormatWeb3 = 42
-}#}}}
+}
 
-function rgb($r, $g, $b) {#{{{
+function rgb($r, $g, $b) {
   return ($b + ($g * 256) + ($r * 65536))
-}#}}}
+}
 
-function randomColor() {#{{{
+function randomColor() {
   $r = $(0..255 | Get-Random)
   $g = $(0..255 | Get-Random)
   $b = $(0..255 | Get-Random)
   return rgb $r $g $b
-}#}}}
+}
 
-function checkFilePath($path) {#{{{
+function checkFilePath($path) {
 
   trap { Write-Host "[checkFilePath]: Error $($_)"; throw $_ }
 
@@ -193,9 +193,9 @@ function checkFilePath($path) {#{{{
 
   return $path
 
-}#}}}
+}
 
-function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableMap, [ref]$listMap) {#{{{
+function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableMap, [ref]$listMap) {
 
   trap { Write-Host "[typeText]: Error $($_)"; throw $_ }
 
@@ -272,152 +272,166 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
   switch -regex ($line) {
     # title
     "^#<!--%title--> " {
-            $line = $line -replace "^#<!--%title--> ", ""
-            $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("表題")
-            break
-          }
+      $line = $line -replace "^#<!--%title--> ", ""
+      $selection.TypeText($line)
+      $selection.Style = $doc.Styles.Item("表題")
+      break
+    }
     # subtitle
     "^#<!--%subtitle--> " {
-            $line = $line -replace "^#<!--%subtitle--> ", ""
-            $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("副題")
-            break
-          }
+      $line = $line -replace "^#<!--%subtitle--> ", ""
+      $selection.TypeText($line)
+      $selection.Style = $doc.Styles.Item("副題")
+      break
+    }
     # head 1
     "^# " {
-            $line = $line -replace "^# ", ""
-            $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("見出し 1")
-          }
+      $line = $line -replace "^# ", ""
+      $selection.TypeText($line)
+      $selection.Style = $doc.Styles.Item("見出し 1")
+    }
     # head 2
     "^## " {
-            $line = $line -replace "^## ", ""
-            $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("見出し 2")
-          }
+      $line = $line -replace "^## ", ""
+      $selection.TypeText($line)
+      $selection.Style = $doc.Styles.Item("見出し 2")
+    }
     # head 3
     "^### " {
-            $line = $line -replace "^### ", ""
-            $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("見出し 3")
-          }
+      $line = $line -replace "^### ", ""
+      $selection.TypeText($line)
+      $selection.Style = $doc.Styles.Item("見出し 3")
+    }
     # head 4
     "^#### " {
-            $line = $line -replace "^#### ", ""
-            $selection.TypeText($line)
-            $selection.Style = $doc.Styles.Item("見出し 4")
-          }
+      $line = $line -replace "^#### ", ""
+      $selection.TypeText($line)
+      $selection.Style = $doc.Styles.Item("見出し 4")
+    }
     # bullet list
     "^(?<bIndent>\s*)\* " {
-            $line = $line -replace "^\s*\* ", ""
-            $selection.Range.ListFormat.ApplyBulletDefault()
+      $line = $line -replace "^\s*\* ", ""
+      $selection.Range.ListFormat.ApplyBulletDefault()
 
-            # indent
-            $indentCnt = ($matches.bIndent).Length
-            if ($indentCnt -ne 0) {
-              if ($listMap.Value.indentCnt -eq 0) {
-                $listMap.Value.indentCnt = $indentCnt
-              }
+      # indent
+      $indentCnt = ($matches.bIndent).Length
+      if ($indentCnt -ne 0) {
+        if ($listMap.Value.indentCnt -eq 0) {
+          $listMap.Value.indentCnt = $indentCnt
+        }
 
-              $indent = $indentCnt / $listMap.Value.indentCnt
-              for ($i = 0; $i -lt $indent; $i++) {
-                $selection.Range.ListFormat.ListIndent()
-              }
-            }
+        $indent = $indentCnt / $listMap.Value.indentCnt
+        for ($i = 0; $i -lt $indent; $i++) {
+          $selection.Range.ListFormat.ListIndent()
+        }
+      }
 
-            $selection.TypeText($line)
-          }
+      $selection.TypeText($line)
+    }
     # number list
     "^(?<nIndent>\s*)[0-9]+\. " {
-            $line = $line -replace "^\s*[0-9]+\. ", ""
-            $selection.Range.ListFormat.ApplyNumberDefault()
+      $line = $line -replace "^\s*[0-9]+\. ", ""
+      $selection.Range.ListFormat.ApplyNumberDefault()
 
-            if ($listMap.Value.continuous) {
-              $selection.Range.ListFormat.ApplyListTemplate($word.ListGalleries.Item($CONST.wdNumberGallery).ListTemplates.Item(1), $true)
-            } else {
-              $selection.Range.ListFormat.ApplyListTemplate($word.ListGalleries.Item($CONST.wdNumberGallery).ListTemplates.Item(1), $false)
-              $listMap.Value.continuous = $true
-            }
+      if ($listMap.Value.continuous) {
+        $selection.Range.ListFormat.ApplyListTemplate($word.ListGalleries.Item($CONST.wdNumberGallery).ListTemplates.Item(1), $true)
+      } else {
+        $selection.Range.ListFormat.ApplyListTemplate($word.ListGalleries.Item($CONST.wdNumberGallery).ListTemplates.Item(1), $false)
+        $listMap.Value.continuous = $true
+      }
 
-            # indent
-            $indentCnt = ($matches.nIndent).Length
-            if ($indentCnt -ne 0) {
-              if ($listMap.Value.indentCnt -eq 0) {
-                $listMap.Value.indentCnt = $indentCnt
-              }
+      # indent
+      $indentCnt = ($matches.nIndent).Length
+      if ($indentCnt -ne 0) {
+        if ($listMap.Value.indentCnt -eq 0) {
+          $listMap.Value.indentCnt = $indentCnt
+        }
 
-              $indent = $indentCnt / $listMap.Value.indentCnt
-              for ($i = 0; $i -lt $indent; $i++) {
-                $selection.Range.ListFormat.ListIndent()
-              }
-            }
+        $indent = $indentCnt / $listMap.Value.indentCnt
+        for ($i = 0; $i -lt $indent; $i++) {
+          $selection.Range.ListFormat.ListIndent()
+        }
+      }
 
-            $selection.TypeText($line)
-          }
+      $selection.TypeText($line)
+    }
     # list continuous
-    "<!--% end of list -->$" {
-            $listMap.Value.continuous = $false
-            return
+    "<!--% *end of list *-->$" {
+      $listMap.Value.continuous = $false
+      return
     }
     # image
     "!\[(?<imgName>.*)\]\((?<imgUrl>.*)\)(<!--%(?<width>[0-9]*)x(?<height>[0-9]*)-->|.*)" {
-            $imgPath = $(Join-Path (Split-Path -parent $mdFile) $matches.imgUrl)
-            if (Test-Path $imgPath) {
-              $img = $selection.InlineShapes.AddPicture($imgPath)
-              #Write-Debug "Height: [$($img.Height)] Width: [$($img.Width)]"
-              $img.LockAspectRatio = $CONST.msoTrue
-              if ($matches.width) {
-                $img.Width = $matches.width
-              }
-              if ($matches.height) {
-                $img.Height = $matches.height
-              }
-            } else {
-              Write-Error "$($imgPath) is not found !"
-            }
-          }
+      $imgPath = $(Join-Path (Split-Path -parent $mdFile) $matches.imgUrl)
+      if (Test-Path $imgPath) {
+        $img = $selection.InlineShapes.AddPicture($imgPath)
+        #Write-Debug "Height: [$($img.Height)] Width: [$($img.Width)]"
+        $img.LockAspectRatio = $CONST.msoTrue
+        if ($matches.width) {
+          $img.Width = $matches.width
+        }
+        if ($matches.height) {
+          $img.Height = $matches.height
+        }
+      } else {
+        Write-Error "$($imgPath) is not found !"
+      }
+    }
+    # hyperlink
+    "^(?<lHead>.*)\[(?<text>.*)\]\((?<url>.*)\)" {
+      Write-Debug "text: [$($matches.text)] url: [$($matches.url)]"
+      $selection.TypeText($matches.lHead)
+      $doc.Hyperlinks.Add($selection.Range,
+                          $matches.url,
+                          [System.Reflection.Missing]::Value,
+                          [System.Reflection.Missing]::Value,
+                          $matches.text)
+    }
     # page break
-    "^<!--%(\[改ページ\]|\[PageBreak\])-->" {
-            $selection.InsertBreak()
-            return
-          }
+    "^<!-- *%(\[改ページ\]|\[PageBreak\]) *-->" {
+      $selection.InsertBreak()
+      return
+    }
     # section break
-    "^<!--%(\[改セクション\]|\[SectionBreak\])-->" {
-            $selection.InsertBreak($CONST.wdSectionBreakNextPage)
-            return
-          }
+    "^<!-- *%(\[改セクション\]|\[SectionBreak\]) *-->" {
+      $selection.InsertBreak($CONST.wdSectionBreakNextPage)
+      return
+    }
     # comment command start
     "^<!--!$" {
-            #Write-Debug "---------- command start ----------"
-            $commandFlg.Value = $true
-            return
-          }
+      #Write-Debug "---------- command start ----------"
+      $commandFlg.Value = $true
+      return
+    }
     # table
     "^\|.*\|$" {
-            Write-Debug "---------- table start ----------"
-            $lineArray = $line.SubString(1, $line.Length -2) -split "\|"
-            $tableMap.Value.col = $lineArray.Length
-            $tableMap.Value.row++
+      # Ignore markdown alignment row.
+      if ($line -match "^\|[:\-\| ]*\|$") {
+        return
+      }
+      Write-Debug "---------- table start ----------"
+      $lineArray = $line.SubString(1, $line.Length - 2) -split "\|"
+      $tableMap.Value.col = $lineArray.Length
+      $tableMap.Value.row++
 
-            if (! $tableMap.Value.flg) {
-              $tableMap.Value.rangeStart = $selection.Start
-            }
+      if (!$tableMap.Value.flg) {
+        $tableMap.Value.rangeStart = $selection.Start
+      }
 
-            $lineArray = $lineArray | % { $_.Trim() }
-            $selection.TypeText($lineArray -join "|")
-            $tableMap.Value.rangeEnd = $selection.End
-            $tableMap.Value.flg = $true
-          }
+      $lineArray = $lineArray | % { $_.Trim() }
+      $selection.TypeText($lineArray -join "|")
+      $tableMap.Value.rangeEnd = $selection.End
+      $tableMap.Value.flg = $true
+    }
     # comment
     "<!--[^!].*-->" {
-            # do nothing
-            #Write-Debug "comment"
-          }
+      # do nothing
+      #Write-Debug "comment"
+    }
     # other
     default {
-            $selection.TypeText($line)
-          }
+      $selection.TypeText($line)
+    }
   }
 
   # Do inline command
@@ -428,9 +442,9 @@ function typeText($line, $word, $doc, $selection, [ref]$commandFlg, [ref]$tableM
   $selection.TypeParagraph()
   $selection.Style = $doc.Styles.Item("標準")
 
-}#}}}
+}
 
-function readps1() {#{{{
+function readps1() {
 
   trap { Write-Host "[readps1]: Error $($_)"; throw $_ }
 
@@ -444,9 +458,9 @@ function readps1() {#{{{
     Invoke-Expression "& '$ps1File'"
   }
 
-}#}}}
+}
 
-function main() {#{{{
+function main() {
 
   trap { Write-Host "[main]: Error $($_)"; throw $_ }
 
@@ -504,7 +518,7 @@ function main() {#{{{
     }
   }
 
-} #}}}
+}
 
 # call main
 Measure-Command { main }
